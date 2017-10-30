@@ -1,8 +1,9 @@
 import numpy as np
+from scipy import stats
 
 
 class KMeans(object):
-    def __init__(self, n_clusters, init='random', max_iter=300,
+    def __init__(self, n_clusters, init='kmeans++', max_iter=300,
                  random_state=None):
 
         self.n_clusters = n_clusters
@@ -18,7 +19,7 @@ class KMeans(object):
 
         if self.n_clusters < 2:
             raise ValueError()
-        if self.init not in ['random', 'k_mean++']:
+        if self.init not in ['forgy', 'random', 'kmeans++']:
             raise ValueError()
         if self.max_iter <= 0:
             raise ValueError()
@@ -37,9 +38,25 @@ class KMeans(object):
                 raise ValueError()
 
     def _init_clusters(self, X):
-        if self.init == 'random':
+        if self.init == 'forgy':
             idx = np.random.randint(0, self.n_samples, self.n_clusters)
             self.cluster_centers = X[idx, :]
+        elif self.init == 'random':
+            assignments =\
+                np.argmin(np.random.rand(self.n_clusters, self.n_samples), axis=0)
+            self.cluster_centers =\
+                np.array([np.average(X[assignments == i], axis=0)
+                          for i in range(self.n_clusters)])
+        elif self.init == 'kmeans++':
+            c_k = np.random.choice(range(X.shape[0]), 1)
+            self.cluster_centers = [X[c_k]]
+            for i in range(1, self.n_clusters):
+                x_k = range(self.n_samples)
+                p_k = np.square(np.min([self._calculate_distances(X, center) for center in self.cluster_centers], axis=0))
+                p_k = p_k / np.sum(p_k)
+                c_k = stats.rv_discrete(values=(x_k, p_k)).rvs(size=1)
+                self.cluster_centers.append(X[c_k])
+            self.cluster_centers = np.array(self.cluster_centers)
 
     def _assign_data(self, X):
         distances = []
@@ -59,7 +76,10 @@ class KMeans(object):
     def _calculate_centers(self, X, labels):
         centers = []
         for cluster in range(self.n_clusters):
-            centers.append(np.average(X[labels == cluster], axis=0))
+            center = np.average(X[labels == cluster], axis=0)
+            if np.sum(np.isfinite(center)==False) != 0:
+                center = self.cluster_centers[cluster]
+            centers.append(center)
         self.cluster_centers = np.array(centers)
 
     def fit(self, X):
