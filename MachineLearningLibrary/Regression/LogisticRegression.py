@@ -13,7 +13,6 @@ class LogisticRegression(object):
         self.learning_rate = learning_rate
         self.n_initerations = n_initerations
         self._cost = []
-        self.bs = []
 
     def fit(self, X, y):
         y = np.copy(y)
