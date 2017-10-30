@@ -132,6 +132,7 @@ class LogisticOutputLayer(BaseLayer):
 
 class ArtificialNeuralNetwork(object):
     def __init__(self, L2=None):
+        self.is_configured = False
         self.L2 = L2
         self.learning_rate = None
         self.layers = []
@@ -142,7 +143,10 @@ class ArtificialNeuralNetwork(object):
 
     def fit(self, X, Y, n_iter=1000, learning_rate=0.01):
         self.learning_rate = learning_rate
-        self._configure_layers(X)
+
+        if not self.is_configured:
+            self._configure_layers(X)
+            self.is_configured = True
         for i in range(n_iter):
             self._feed_forward(X, prediction=False)
             self._calculate_cost(Y)
